@@ -40,7 +40,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const existingId = parseInt(bookingIdInput.value);
-            console.log('submitBtn, existingID=', existingId);
 
             const booking = {
                 id: existingId || Math.floor(Math.random() * 1000 + 1),
@@ -55,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 const index = bookingItems.findIndex(item => item.id === existingId);
                 if (index !== -1) {
                     bookingItems[index] = booking;
-                    console.log(booking);
                     showToast("Booking updated successfully.");
                 }
             } else {
@@ -238,7 +236,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 const index = bookingItems.findIndex(b => b.id === parseInt(idToDelete));
                 if (index !== -1) {
                     const bookingName = bookingItems[index].name;
-                    console.log('deleteBooking, bookingName=', bookingName);
                     bookingItems.splice(index, 1);
                     saveData(bookingItems);
                     renderBooking();

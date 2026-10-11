@@ -92,7 +92,8 @@ async function updateBin(binID,data) {
             {
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Master-Key": `${API_KEY}`
+                    "X-Master-Key": `${API_KEY}`,
+                    "X-Bin-Versioning": true
                 }
             }
         );
