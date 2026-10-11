@@ -1,22 +1,31 @@
-function formatDate(dateString) {
-    if (!dateString) return "—";
+const formTitle = document.querySelector("#formTitle");
+const formEyebrow = document.querySelector("#formEyebrow");
 
-    const date = new Date(`${dateString}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return dateString;
+const bookingIdInput = document.getElementById("bookingId");
+const bookingDateInput = document.querySelector("#bookingDate");
+const nameInput = document.querySelector("#name");
+const contactInput = document.querySelector("#contactNo");
+const emailInput = document.querySelector("#email");
+const serviceDetailsInput = document.querySelector("#serviceDetails");
+const formMessage = document.querySelector("#formMessage");
 
-    return new Intl.DateTimeFormat("en-SG", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    }).format(date);
-}
+const submitText = document.querySelector("#submitText");
+const clearBtn = document.querySelector("#clearBtn");
+
+const desktopTableWrap = document.querySelector("#desktopTableWrap");
+const tableBody = document.querySelector("#bookingTableBody");
+const mobileBookings = document.querySelector("#mobileBookings");
+
+const toast = document.querySelector("#toast");
+
+let bookingItems = [];
+let toastTimer = null;
 
 document.addEventListener("DOMContentLoaded", function () {
-    let bookingItems = [];
 
     async function main() {
-        bookingItems = await fetchData(BIN_ID);
-        renderTableBooking();
+        bookingItems = await getData();
+        renderBooking();
     };
 
     main();
@@ -25,24 +34,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.querySelector("#submitBtn").
         addEventListener("click", function () {
-            const bookingDate = document.querySelector("#bookingDate").value;
-            const name = document.querySelector("#name").value;
-            const contactNo = document.querySelector("#contactNo").value;
-            const email = document.querySelector("#email").value;
-            const serviceDetails = document.querySelector("#serviceDetails").value;
-
-            const newBooking = {
-                id: Math.floor(Math.random() * 1000 + 1),
-                bookingDate,
-                name,
-                contactNo,
-                email,
-                serviceDetails
+            if (!validateForm()) {
+                showFormMessage("Please correct the highlighted fields.", "error");
+                return;
             }
-            bookingItems.push(newBooking);
-            saveData(BIN_ID, bookingItems)
+
+            const existingId = parseInt(bookingIdInput.value);
+            console.log('submitBtn, existingID=', existingId);
+
+            const booking = {
+                id: existingId || Math.floor(Math.random() * 1000 + 1),
+                bookingDate: bookingDateInput.value.trim(),
+                name: nameInput.value.trim(),
+                contactNo: contactInput.value.trim(),
+                email: emailInput.value.trim(),
+                serviceDetails: serviceDetailsInput.value.trim()
+            }
+
+            if (existingId) {
+                const index = bookingItems.findIndex(item => item.id === existingId);
+                if (index !== -1) {
+                    bookingItems[index] = booking;
+                    console.log(booking);
+                    showToast("Booking updated successfully.");
+                }
+            } else {
+
+                bookingItems.push(booking);
+                showToast("Booking added successfully.");
+            }
+
+            saveData(bookingItems);
             resetForm();
-            renderTableBooking();
+            renderBooking();
         });
 
     document.addEventListener("click", event => {
@@ -62,9 +86,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-    function renderTableBooking() {
-        const bookingTableBody = document.querySelector('#bookingTableBody');
-        bookingTableBody.innerHTML = bookingItems.map(booking => `
+    function renderBooking() {
+        renderDesktopTable();
+        renderMobileCards();
+    }
+
+    function renderDesktopTable() {
+        tableBody.innerHTML = bookingItems.map(booking => `
             <tr>
             <td>${formatDate(booking.bookingDate)}</td>
             <td>${booking.name}</td>
@@ -73,67 +101,127 @@ document.addEventListener("DOMContentLoaded", function () {
             <td class="service-cell">${booking.serviceDetails}</td>        
              <td>
                 <div class="action-buttons">
-                    <button class="editBtn btn btn-success" data-action="edit" data-id="${booking.id}">Edit</button>
-                    <button class="deleteBtn btn btn-danger" data-action="delete" data-id="${booking.id}">Delete</button>
+                    <button class="action-btn edit" data-action="edit" data-id="${booking.id}">Edit</button>
+                    <button class="action-btn delete" data-action="delete" data-id="${booking.id}">Delete</button>
                 </div>
             </td>   
             </tr>
-    `).join("");
+        `).join("");
+
+        desktopTableWrap.classList.remove("hidden");
     }
 
-    function editBooking(idToModify) {
-        const booking = bookingItems.find(item => item.id === parseInt(idToModify));
-        if (!booking) return;
+    function renderMobileCards() {
+        mobileBookings.innerHTML = bookingItems.map(booking => `
+            <article class="booking-card">
+                <div class="booking-card-top">
+                    <div>
+                        <div class="booking-date">${formatDate(booking.bookingDate)}</div>
+                        <div class="booking-name">${booking.name}</div>
+                    </div>
+                </div>
 
-        Swal.fire({
-            title: "Update Booking",
-            html:
-                `
-                <div class="mt-3">
-                    <label class="form-label">Booking Date:</label>
-                    <input type="date" value="${booking.bookingDate}" id="newBookingDate" class="form-control" />
+                <div class="booking-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Contact</span>
+                        <span class="detail-value">${booking.contactNo}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email</span>
+                        <span class="detail-value">${booking.email}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Service</span>
+                        <span class="detail-value">${booking.serviceDetails}</span>
+                    </div>
                 </div>
-                <div class="mt-3">
-                    <label class="form-label">Name:</label>
-                    <input type="text" value="${booking.name}" id="newName" class="form-control" placeholder="Customer Name" />
+
+                <div class="mobile-actions">
+                    <button class="action-btn edit" data-action="edit" data-id="${booking.id}">Edit</button>
+                    <button class="action-btn delete" data-action="delete" data-id="${booking.id}">Delete</button>
                 </div>
-                <div class="mt-3">
-                    <label class="form-label">Contact No.:</label>
-                    <input type="text" value="${booking.contactNo}" id="newContact" class="form-control" placeholder="Customer Phone No." />
-                </div>
-                <div class="mt-3">
-                    <label class="form-label">Email:</label>
-                    <input type="email" value="${booking.email}" id="newEmail" class="form-control" placeholder="Customer Email Address" />
-                </div>
-                <div class="mt-3">
-                    <label class="form-label">Service Details:</label>
-                    <textarea id="newServiceDetails" class="form-control" rows="4" placeholder="Describe the aircon service required..." >${booking.serviceDetails}</textarea>
-                </div> 
-                `,
-            showCancelButton: true,
-            showCloseButton: true,
-            preConfirm: function () {
-                const newBookingDate = document.querySelector("#newBookingDate").value;
-                const newName = document.querySelector("#newName").value;
-                const newContact = document.querySelector("#newContact").value;
-                const newEmail = document.querySelector("#newEmail").value;
-                const newServiceDetails = document.querySelector("#newServiceDetails").value;
-                const index = bookingItems.findIndex(b => b.id === parseInt(idToModify));
-                if (index !== -1) {
-                    const editedBooking = {
-                        id: booking.id,
-                        bookingDate: newBookingDate,
-                        name: newName,
-                        contactNo: newContact,
-                        email: newEmail,
-                        serviceDetails: newServiceDetails
-                    }
-                    bookingItems[index] = editedBooking;
-                    saveData(BIN_ID, bookingItems);
-                }
-                renderTableBooking();
-            }
-        })
+            </article>
+        `).join("");
+
+        mobileBookings.classList.remove("hidden");
+    }
+
+
+
+
+    function editBooking(idToModify) {
+        const index = bookingItems.findIndex(b => b.id === parseInt(idToModify));
+        if (index === -1) return;
+
+        const booking = bookingItems[index];
+
+        bookingIdInput.value = booking.id;
+        bookingDateInput.value = booking.bookingDate;
+        nameInput.value = booking.name;
+        contactInput.value = booking.contactNo;
+        emailInput.value = booking.email;
+        serviceDetailsInput.value = booking.serviceDetails;
+
+        setEditMode(true);
+        clearValidation();
+        clearFormMessage();
+
+        document.querySelector(".form-card").scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+        setTimeout(() => nameInput.focus(), 350);
+
+        // Swal.fire({
+        //     title: "Update Booking",
+        //     html:
+        //         `
+        //         <div class="mt-3">
+        //             <label class="form-label">Booking Date:</label>
+        //             <input type="date" value="${booking.bookingDate}" id="newBookingDate" class="form-control" />
+        //         </div>
+        //         <div class="mt-3">
+        //             <label class="form-label">Name:</label>
+        //             <input type="text" value="${booking.name}" id="newName" class="form-control" placeholder="Customer Name" />
+        //         </div>
+        //         <div class="mt-3">
+        //             <label class="form-label">Contact No.:</label>
+        //             <input type="text" value="${booking.contactNo}" id="newContact" class="form-control" placeholder="Customer Phone No." />
+        //         </div>
+        //         <div class="mt-3">
+        //             <label class="form-label">Email:</label>
+        //             <input type="email" value="${booking.email}" id="newEmail" class="form-control" placeholder="Customer Email Address" />
+        //         </div>
+        //         <div class="mt-3">
+        //             <label class="form-label">Service Details:</label>
+        //             <textarea id="newServiceDetails" class="form-control" rows="4" placeholder="Describe the aircon service required..." >${booking.serviceDetails}</textarea>
+        //         </div> 
+        //         `,
+        //     showCancelButton: true,
+        //     showCloseButton: true,
+        //     preConfirm: function () {
+        //         const newBookingDate = document.querySelector("#newBookingDate").value.trim();
+        //         const newName = document.querySelector("#newName").value.trim();
+        //         const newContact = document.querySelector("#newContact").value.trim();
+        //         const newEmail = document.querySelector("#newEmail").value.trim();
+        //         const newServiceDetails = document.querySelector("#newServiceDetails").value.trim();
+
+        //         if (newBookingDate && newName && newContact && newEmail && newServiceDetails) {
+        //             const editedBooking = {
+        //                 id: booking.id,
+        //                 bookingDate: newBookingDate,
+        //                 name: newName,
+        //                 contactNo: newContact,
+        //                 email: newEmail,
+        //                 serviceDetails: newServiceDetails
+        //             }
+        //             bookingItems[index] = editedBooking;
+        //             saveData(bookingItems);
+        //         }
+        //         renderBooking();
+        //     }
+        // })
     }
 
     function deleteBooking(idToDelete) {
@@ -149,21 +237,113 @@ document.addEventListener("DOMContentLoaded", function () {
             if (result.isConfirmed) {
                 const index = bookingItems.findIndex(b => b.id === parseInt(idToDelete));
                 if (index !== -1) {
+                    const bookingName = bookingItems[index].name;
+                    console.log('deleteBooking, bookingName=', bookingName);
                     bookingItems.splice(index, 1);
-                    //console.log('deleted');
-                    saveData(BIN_ID, bookingItems);
+                    saveData(bookingItems);
+                    renderBooking();
+                    if (bookingName) {
+                        showToast(`Booking for ${bookingName} was deleted.`);
+                    }
                 }
-                renderTableBooking();
+
+
             }
         });
     }
-
-
 })
 
 document.querySelector('#clearBtn').addEventListener('click', function () {
+    if (bookingIdInput.value !== "") {
+        showToast("Edit cancelled.");
+    }
     resetForm();
 })
+
+// ---------- Validation ----------
+function setFieldError(input, errorElementId, message) {
+    const group = input.closest(".form-group");
+    const errorElement = document.getElementById(errorElementId);
+
+    group.classList.toggle("invalid", Boolean(message));
+    errorElement.textContent = message || "";
+}
+
+function clearValidation() {
+    setFieldError(bookingDateInput, "bookingDateError", "");
+    setFieldError(nameInput, "nameError", "");
+    setFieldError(contactInput, "contactNoError", "");
+    setFieldError(emailInput, "emailError", "");
+    setFieldError(serviceDetailsInput, "serviceDetailsError", "");
+}
+
+function validateForm() {
+    clearValidation();
+
+    const bookingDate = bookingDateInput.value.trim();
+    const name = nameInput.value.trim();
+    const contactNo = contactInput.value.trim();
+    const email = emailInput.value.trim();
+    const serviceDetails = serviceDetailsInput.value.trim();
+
+    let valid = true;
+
+    if (!bookingDate) {
+        setFieldError(bookingDateInput, "bookingDateError", "Please select a booking date.");
+        valid = false;
+    }
+
+    if (!name) {
+        setFieldError(nameInput, "nameError", "Please enter the customer's name.");
+        valid = false;
+    } else if (name.length < 2) {
+        setFieldError(nameInput, "nameError", "Name must be at least 2 characters.");
+        valid = false;
+    }
+
+    if (!contactNo) {
+        setFieldError(contactInput, "contactNoError", "Please enter a contact number.");
+        valid = false;
+    } else if (!/^[0-9+\-\s()]{7,20}$/.test(contactNo)) {
+        setFieldError(contactInput, "contactNoError", "Please enter a valid contact number.");
+        valid = false;
+    }
+
+    if (!email) {
+        setFieldError(emailInput, "emailError", "Please enter an email address.");
+        valid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFieldError(emailInput, "emailError", "Please enter a valid email address.");
+        valid = false;
+    }
+
+    if (!serviceDetails) {
+        setFieldError(serviceDetailsInput, "serviceDetailsError", "Please enter the required service.");
+        valid = false;
+    }
+
+    return valid;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return "—";
+
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateString;
+
+    return new Intl.DateTimeFormat("en-SG", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    }).format(date);
+}
+
+function setEditMode(isEditing) {
+    formTitle.textContent = isEditing ? "Edit Booking" : "Add Booking";
+    formEyebrow.textContent = isEditing ? "EDIT BOOKING" : "NEW BOOKING";
+    submitText.textContent = isEditing ? "Update Booking" : "Add Booking";
+    clearBtn.textContent = isEditing ? "Cancel Edit" : "Clear";
+}
 
 function resetForm() {
     const inputs = document.querySelectorAll('.form-control');
@@ -171,7 +351,32 @@ function resetForm() {
     inputs.forEach(input => {
         input.value = '';
     });
+    //bookingIdInput.value = "";
+    setEditMode(false);
+    clearValidation();
+    clearFormMessage();
 }
+
+function showFormMessage(message, type) {
+    formMessage.textContent = message;
+    formMessage.className = `form-message ${type}`;
+}
+
+function clearFormMessage() {
+    formMessage.textContent = "";
+    formMessage.className = "form-message";
+}
+
+function showToast(message) {
+    clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2600);
+}
+
 
 
 
