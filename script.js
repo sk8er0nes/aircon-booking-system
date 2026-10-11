@@ -29,8 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     main();
-
-
+    
 
     document.querySelector("#submitBtn").
         addEventListener("click", function () {
@@ -170,56 +169,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         setTimeout(() => nameInput.focus(), 350);
-
-        // Swal.fire({
-        //     title: "Update Booking",
-        //     html:
-        //         `
-        //         <div class="mt-3">
-        //             <label class="form-label">Booking Date:</label>
-        //             <input type="date" value="${booking.bookingDate}" id="newBookingDate" class="form-control" />
-        //         </div>
-        //         <div class="mt-3">
-        //             <label class="form-label">Name:</label>
-        //             <input type="text" value="${booking.name}" id="newName" class="form-control" placeholder="Customer Name" />
-        //         </div>
-        //         <div class="mt-3">
-        //             <label class="form-label">Contact No.:</label>
-        //             <input type="text" value="${booking.contactNo}" id="newContact" class="form-control" placeholder="Customer Phone No." />
-        //         </div>
-        //         <div class="mt-3">
-        //             <label class="form-label">Email:</label>
-        //             <input type="email" value="${booking.email}" id="newEmail" class="form-control" placeholder="Customer Email Address" />
-        //         </div>
-        //         <div class="mt-3">
-        //             <label class="form-label">Service Details:</label>
-        //             <textarea id="newServiceDetails" class="form-control" rows="4" placeholder="Describe the aircon service required..." >${booking.serviceDetails}</textarea>
-        //         </div> 
-        //         `,
-        //     showCancelButton: true,
-        //     showCloseButton: true,
-        //     preConfirm: function () {
-        //         const newBookingDate = document.querySelector("#newBookingDate").value.trim();
-        //         const newName = document.querySelector("#newName").value.trim();
-        //         const newContact = document.querySelector("#newContact").value.trim();
-        //         const newEmail = document.querySelector("#newEmail").value.trim();
-        //         const newServiceDetails = document.querySelector("#newServiceDetails").value.trim();
-
-        //         if (newBookingDate && newName && newContact && newEmail && newServiceDetails) {
-        //             const editedBooking = {
-        //                 id: booking.id,
-        //                 bookingDate: newBookingDate,
-        //                 name: newName,
-        //                 contactNo: newContact,
-        //                 email: newEmail,
-        //                 serviceDetails: newServiceDetails
-        //             }
-        //             bookingItems[index] = editedBooking;
-        //             saveData(bookingItems);
-        //         }
-        //         renderBooking();
-        //     }
-        // })
     }
 
     function deleteBooking(idToDelete) {
